@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Educativa - U.E. Arajuruana</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #d9534f;
+            --dark-color: #2c3e50;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--dark-color);
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 12px 20px;
+            margin: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+
+        .sidebar .nav-link i {
+            width: 24px;
+        }
+
+        .brand-logo {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .brand-logo h5 {
+            margin: 0;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 25px;
+        }
+
+        .card-custom {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card {
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .stat-card.asistencia { border-left-color: #28a745; }
+        .stat-card.pagos { border-left-color: #ffc107; }
+        .stat-card.morosos { border-left-color: #dc3545; }
+
+        .stat-icon {
+            font-size: 2.2rem;
+            opacity: 0.3;
+        }
+
+        /* Tables & Badges */
+        .table-responsive {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 15px;
+        }
+
+        .badge-asistencia-presente { background-color: #d4edda; color: #155724; }
+        .badge-asistencia-falta { background-color: #f8d7da; color: #721c24; }
+        .badge-asistencia-atraso { background-color: #fff3cd; color: #856404; }
+        .badge-asistencia-licencia { background-color: #cce5ff; color: #004085; }
+
+        /* Receipt Printable Area */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableReceipt, #printableReceipt * {
+                visibility: visible;
+            }
+            #printableReceipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <nav class="col-md-3 col-lg-2 sidebar d-md-block collapse p-0">
+                <div class="brand-logo text-center">
+                    <i class="fas fa-graduation-cap fa-2x mb-2 text-warning"></i>
+                    <h5>U.E. Arajuruana</h5>
+                    <small class="text-white-50">Fe y Alegría</small>
+                </div>
+                <div class="pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showSection('dashboard', this)">
+                                <i class="fas fa-chart-line me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('estudiantes', this)">
+                                <i class="fas fa-user-graduate me-2"></i> Estudiantes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('asistencia', this)">
+                                <i class="fas fa-user-check me-2"></i> Control Asistencia
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('pagos', this)">
+                                <i class="fas fa-receipt me-2"></i> Control de Pagos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('reportes', this)">
+                                <i class="fas fa-file-invoice-dollar me-2"></i> Reportes
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <!-- Top Navbar -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-3 mb-4 border-bottom">
+                    <h1 class="h3 fw-bold text-secondary" id="sectionTitle">Dashboard General</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-primary px-3 py-2 fs-6" id="currentDate"></span>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i> Prof. Miguel Rocha
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-sign-out-alt me-2"></i>Salir</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: DASHBOARD -->
+                <div id="section-dashboard" class="content-section">
+                    <!-- Stat Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card card-custom stat-card bg-white p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted fw-bold small text-uppercase">Estudiantes Matriculados</h6>
+                                        <h3 class="fw-bold mb-0" id="dashTotalEstudiantes">0</h3>
+                                    </div>
+                                    <i class="fas fa-users text-primary stat-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card card-custom stat-card asistencia bg-white p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted fw-bold small text-uppercase">Asistencia Hoy</h6>
+                                        <h3 class="fw-bold mb-0" id="dashAsistenciaHoy">0%</h3>
+                                    </div>
+                                    <i class="fas fa-clipboard-check text-success stat-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card card-custom stat-card pagos bg-white p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted fw-bold small text-uppercase">Recaudado (Mes)</h6>
+                                        <h3 class="fw-bold mb-0" id="dashRecaudado">Bs. 0</h3>
+                                    </div>
+                                    <i class="fas fa-wallet text-warning stat-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="card card-custom stat-card morosos bg-white p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted fw-bold small text-uppercase">Pagos Pendientes</h6>
+                                        <h3 class="fw-bold mb-0" id="dashPendientes">0</h3>
+                                    </div>
+                                    <i class="fas fa-exclamation-circle text-danger stat-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-8">
+                            <div class="card card-custom p-3 bg-white">
+                                <h5 class="fw-bold text-secondary mb-3">Resumen de Asistencia Semanal</h5>
+                                <canvas id="chartAsistencia" height="130"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card card-custom p-3 bg-white">
+                                <h5 class="fw-bold text-secondary mb-3">Estado de Aportes/Pagos</h5>
+                                <canvas id="chartPagos" height="260"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: ESTUDIANTES -->
+                <div id="section-estudiantes" class="content-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold text-secondary">Lista General de Estudiantes</h4>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEstudiante">
+                            <i class="fas fa-plus me-1"></i> Registrar Estudiante
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tablaEstudiantes">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>RUDE</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Curso/Grado</th>
+                                    <th>Tutor / Apoderado</th>
+                                    <th>Teléfono Contacto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: CONTROL ASISTENCIA -->
+                <div id="section-asistencia" class="content-section d-none">
+                    <div class="card card-custom p-3 mb-4 bg-white">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Seleccionar Curso:</label>
+                                <select class="form-select" id="selectCursoAsistencia" onchange="cargarListaAsistencia()">
+                                    <option value="1er Grado Secundaria">1er Grado Secundaria</option>
+                                    <option value="2do Grado Secundaria">2do Grado Secundaria</option>
+                                    <option value="3ro Grado Secundaria">3ro Grado Secundaria</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Fecha:</label>
+                                <input type="date" class="form-control" id="fechaAsistencia" onchange="cargarListaAsistencia()">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end gap-2">
+                                <button class="btn btn-success w-100" onclick="marcarTodos('Presente')">
+                                    <i class="fas fa-check-double me-1"></i> Todos Presentes
+                                </button>
+                                <button class="btn btn-primary w-100" onclick="guardarAsistencia()">
+                                    <i class="fas fa-save me-1"></i> Guardar Lista
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped align-middle" id="tablaTomarAsistencia">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Estudiante</th>
+                                    <th class="text-center">Estado de Asistencia</th>
+                                    <th>Observación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: CONTROL DE PAGOS -->
+                <div id="section-pagos" class="content-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold text-secondary">Registro de Cobros y Cuotas</h4>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPago">
+                            <i class="fas fa-cash-register me-1"></i> Registrar Nuevo Pago
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tablaPagos">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>N° Recibo</th>
+                                    <th>Estudiante</th>
+                                    <th>Concepto / Mes</th>
+                                    <th>Monto (Bs.)</th>
+                                    <th>Fecha Pago</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: REPORTES -->
+                <div id="section-reportes" class="content-section d-none">
+                    <h4 class="fw-bold text-secondary mb-3">Generación de Reportes</h4>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 bg-white">
+                                <h5 class="fw-bold text-primary"><i class="fas fa-file-pdf me-2"></i>Reporte Mensual de Asistencia</h5>
+                                <p class="text-muted small">Genera el listado consolidado de inasistencias y atrasos por curso.</p>
+                                <button class="btn btn-outline-primary" onclick="alert('Generando Reporte PDF de Asistencia...')">
+                                    <i class="fas fa-download me-1"></i> Descargar Reporte PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 bg-white">
+                                <h5 class="fw-bold text-success"><i class="fas fa-file-excel me-2"></i>Reporte Económico de Cuotas</h5>
+                                <p class="text-muted small">Exporta el detalle de ingresos de caja y lista de estudiantes morosos.</p>
+                                <button class="btn btn-outline-success" onclick="alert('Exportando Reporte Excel de Pagos...')">
+                                    <i class="fas fa-download me-1"></i> Exportar a Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL REGISTRO ESTUDIANTE -->
+    <div class="modal fade" id="modalEstudiante" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Registrar Nuevo Estudiante</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEstudiante">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Código RUDE</label>
+                            <input type="text" class="form-control" id="estRude" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo</label>
+                            <input type="text" class="form-control" id="estNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Curso / Grado</label>
+                            <select class="form-select" id="estCurso" required>
+                                <option value="1er Grado Secundaria">1er Grado Secundaria</option>
+                                <option value="2do Grado Secundaria">2do Grado Secundaria</option>
+                                <option value="3ro Grado Secundaria">3ro Grado Secundaria</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Tutor / Apoderado</label>
+                            <input type="text" class="form-control" id="estTutor" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Teléfono Contacto</label>
+                            <input type="tel" class="form-control" id="estTelefono" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEstudiante()">Guardar Estudiante</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REGISTRO PAGO -->
+    <div class="modal fade" id="modalPago" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-hand-holding-usd me-2"></i>Registrar Cobro de Cuota</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formPago">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Seleccionar Estudiante</label>
+                            <select class="form-select" id="pagoEstudianteId" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Concepto de Pago</label>
+                            <input type="text" class="form-control" id="pagoConcepto" placeholder="Ej: Mensualidad Mayo / Material escolar" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Monto (Bs.)</label>
+                            <input type="number" class="form-control" id="pagoMonto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Estado</label>
+                            <select class="form-select" id="pagoEstado">
+                                <option value="Pagado">Pagado</option>
+                                <option value="Pendiente">Pendiente</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="guardarPago()">Registrar Pago</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VISTA RECIBO (IMPRIMIBLE) -->
+    <div class="modal fade" id="modalRecibo" tabindex="-1">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-body p-4" id="printableReceipt">
+                    <div class="text-center border-bottom pb-3 mb-3">
+                        <h4 class="fw-bold mb-0">U.E. ARAJURUANA</h4>
+                        <small class="text-muted">Fe y Alegría - Educación Comunitaria</small><br>
+                        <span class="badge bg-dark mt-1">COMPROBANTE DE PAGO</span>
+                    </div>
+                    <div class="row g-2 mb-3 fs-6">
+                        <div class="col-6"><strong>N° Comprobante:</strong> <span id="reciboNum">0001</span></div>
+                        <div class="col-6 text-end"><strong>Fecha:</strong> <span id="reciboFecha">--</span></div>
+                        <div class="col-12"><strong>Estudiante:</strong> <span id="reciboEstudiante">--</span></div>
+                        <div class="col-12"><strong>Concepto:</strong> <span id="reciboConcepto">--</span></div>
+                        <div class="col-12"><strong>Monto Pagado:</strong> <span class="fs-5 fw-bold text-success" id="reciboMonto">Bs. 0</span></div>
+                    </div>
+                    <div class="border-top pt-3 text-center mt-4">
+                        <small class="text-muted">¡Gracias por apoyar a la educación de sus hijos!</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Imprimir Recibo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Data Models Init
+        let estudiantes = JSON.parse(localStorage.getItem('arajuruana_estudiantes')) || [
+            { id: 1, rude: "81920001", nombre: "Loren Nikol Barba", curso: "2do Grado Secundaria", tutor: "María Barba", telefono: "71234567" },
+            { id: 2, rude: "81920002", nombre: "Thiago Hurtado Mariscal", curso: "1er Grado Secundaria", tutor: "Franklin Hurtado", telefono: "72345678" },
+            { id: 3, rude: "81920003", nombre: "Aly Ignacio Colque", curso: "1er Grado Secundaria", tutor: "Juan Colque", telefono: "73456789" },
+            { id: 4, rude: "81920004", nombre: "Sairanara Suárez Rodríguez", curso: "3ro Grado Secundaria", tutor: "Tilza Rodríguez", telefono: "74567890" }
+        ];
+
+        let asistencias = JSON.parse(localStorage.getItem('arajuruana_asistencias')) || [];
+        let pagos = JSON.parse(localStorage.getItem('arajuruana_pagos')) || [
+            { id: 1, estudianteId: 1, concepto: "Aporte Inicial / Matrícula", monto: 50, fecha: "2026-02-10", estado: "Pagado" },
+            { id: 2, estudianteId: 2, concepto: "Aporte Inicial / Matrícula", monto: 50, fecha: "2026-02-12", estado: "Pagado" },
+            { id: 3, estudianteId: 3, concepto: "Mensualidad Marzo", monto: 40, fecha: "2026-03-05", estado: "Pendiente" }
+        ];
+
+        // Global Charts Variables
+        let chartAsistenciaInstance = null;
+        let chartPagosInstance = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('fechaAsistencia').valueToDate = new Date();
+            document.getElementById('fechaAsistencia').value = new Date().toISOString().substring(0, 10);
+            
+            saveState();
+            renderAll();
+            initCharts();
+        });
+
+        function saveState() {
+            localStorage.setItem('arajuruana_estudiantes', JSON.stringify(estudiantes));
+            localStorage.setItem('arajuruana_asistencias', JSON.stringify(asistencias));
+            localStorage.setItem('arajuruana_pagos', JSON.stringify(pagos));
+        }
+
+        function renderAll() {
+            renderEstudiantes();
+            cargarListaAsistencia();
+            renderPagos();
+            updateDashboardCards();
+        }
+
+        // Navigation
+        function showSection(sectionId, element) {
+            document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('d-none'));
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+            
+            document.getElementById(`section-${sectionId}`).classList.remove('d-none');
+            element.classList.add('active');
+
+            const titles = {
+                'dashboard': 'Dashboard General',
+                'estudiantes': 'Gestión de Estudiantes',
+                'asistencia': 'Control Diario de Asistencia',
+                'pagos': 'Control de Pagos y Aportes',
+                'reportes': 'Reportes del Sistema'
+            };
+            document.getElementById('sectionTitle').innerText = titles[sectionId];
+        }
+
+        // --- ESTUDIANTES ---
+        function renderEstudiantes() {
+            const tbody = document.querySelector('#tablaEstudiantes tbody');
+            tbody.innerHTML = '';
+            
+            estudiantes.forEach(est => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${est.rude}</code></td>
+                    <td class="fw-bold">${est.nombre}</td>
+                    <td><span class="badge bg-secondary">${est.curso}</span></td>
+                    <td>${est.tutor}</td>
+                    <td><i class="fas fa-phone me-1 text-success"></i>${est.telefono}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarEstudiante(${est.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update Estudiantes select in Pagos Modal
+            const selectPagoEst = document.getElementById('pagoEstudianteId');
+            selectPagoEst.innerHTML = '';
+            estudiantes.forEach(est => {
+                selectPagoEst.innerHTML += `<option value="${est.id}">${est.nombre} (${est.curso})</option>`;
+            });
+        }
+
+        function guardarEstudiante() {
+            const rude = document.getElementById('estRude').value;
+            const nombre = document.getElementById('estNombre').value;
+            const curso = document.getElementById('estCurso').value;
+            const tutor = document.getElementById('estTutor').value;
+            const telefono = document.getElementById('estTelefono').value;
+
+            if(!rude || !nombre) return alert('Complete los campos obligatorios');
+
+            const newEst = { id: Date.now(), rude, nombre, curso, tutor, telefono };
+            estudiantes.push(newEst);
+            saveState();
+            renderAll();
+
+            bootstrap.Modal.getInstance(document.getElementById('modalEstudiante')).hide();
+            document.getElementById('formEstudiante').reset();
+        }
+
+        function eliminarEstudiante(id) {
+            if(confirm('¿Desea eliminar este estudiante?')) {
+                estudiantes = estudiantes.filter(e => e.id !== id);
+                saveState();
+                renderAll();
+            }
+        }
+
+        // --- ASISTENCIA ---
+        function cargarListaAsistencia() {
+            const cursoSelected = document.getElementById('selectCursoAsistencia').value;
+            const fechaSelected = document.getElementById('fechaAsistencia').value;
+            const tbody = document.querySelector('#tablaTomarAsistencia tbody');
+            tbody.innerHTML = '';
+
+            const filtrados = estudiantes.filter(e => e.curso === cursoSelected);
+            if(filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No hay estudiantes registrados en este curso.</td></tr>`;
+                return;
+            }
+
+            filtrados.forEach((est, index) => {
+                // Check if existing record
+                const rec = asistencias.find(a => a.estudianteId === est.id && a.fecha === fechaSelected);
+                const estadoActual = rec ? rec.estado : 'Presente';
+                const obsActual = rec ? rec.observacion : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td class="fw-bold">${est.nombre}</td>
+                    <td class="text-center">
+                        <div class="btn-group" role="group" id="group-asistencia-${est.id}">
+                            <input type="radio" class="btn-check" name="ast-${est.id}" id="pres-${est.id}" value="Presente" ${estadoActual==='Presente'?'checked':''}>
+                            <label class="btn btn-outline-success btn-sm" for="pres-${est.id}">Presente</label>
+
+                            <input type="radio" class="btn-check" name="ast-${est.id}" id="atr-${est.id}" value="Atraso" ${estadoActual==='Atraso'?'checked':''}>
+                            <label class="btn btn-outline-warning btn-sm" for="atr-${est.id}">Atraso</label>
+
+                            <input type="radio" class="btn-check" name="ast-${est.id}" id="fal-${est.id}" value="Falta" ${estadoActual==='Falta'?'checked':''}>
+                            <label class="btn btn-outline-danger btn-sm" for="fal-${est.id}">Falta</label>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" id="obs-${est.id}" value="${obsActual}" placeholder="Observación opcional">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function marcarTodos(estado) {
+            document.querySelectorAll('#tablaTomarAsistencia tbody tr').forEach(tr => {
+                const radios = tr.querySelectorAll('input[type="radio"]');
+                radios.forEach(r => {
+                    if(r.value === estado) r.checked = true;
+                });
+            });
+        }
+
+        function guardarAsistencia() {
+            const fechaSelected = document.getElementById('fechaAsistencia').value;
+            const cursoSelected = document.getElementById('selectCursoAsistencia').value;
+
+            estudiantes.filter(e => e.curso === cursoSelected).forEach(est => {
+                const radioChecked = document.querySelector(`input[name="ast-${est.id}"]:checked`);
+                const obsInput = document.getElementById(`obs-${est.id}`);
+                const estado = radioChecked ? radioChecked.value : 'Presente';
+                const observacion = obsInput ? obsInput.value : '';
+
+                // Remove previous record if present
+                asistencias = asistencias.filter(a => !(a.estudianteId === est.id && a.fecha === fechaSelected));
+                
+                asistencias.push({
+                    id: Date.now() + Math.random(),
+                    estudianteId: est.id,
+                    fecha: fechaSelected,
+                    estado: estado,
+                    observacion: observacion
+                });
+            });
+
+            saveState();
+            updateDashboardCards();
+            alert('¡Asistencia guardada correctamente!');
+        }
+
+        // --- PAGOS ---
+        function renderPagos() {
+            const tbody = document.querySelector('#tablaPagos tbody');
+            tbody.innerHTML = '';
+
+            pagos.forEach(p => {
+                const est = estudiantes.find(e => e.id == p.estudianteId) || { nombre: "Estudiante Eliminado" };
+                const badgeClass = p.estado === 'Pagado' ? 'bg-success' : 'bg-warning text-dark';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>#${p.id.toString().padStart(4, '0')}</strong></td>
+                    <td class="fw-bold">${est.nombre}</td>
+                    <td>${p.concepto}</td>
+                    <td class="fw-bold text-success">Bs. ${parseFloat(p.monto).toFixed(2)}</td>
+                    <td>${p.fecha}</td>
+                    <td><span class="badge ${badgeClass}">${p.estado}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="verRecibo(${p.id})">
+                            <i class="fas fa-print"></i> Recibo
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function guardarPago() {
+            const estudianteId = parseInt(document.getElementById('pagoEstudianteId').value);
+            const concepto = document.getElementById('pagoConcepto').value;
+            const monto = parseFloat(document.getElementById('pagoMonto').value);
+            const estado = document.getElementById('pagoEstado').value;
+
+            if(!concepto || isNaN(monto)) return alert('Complete los datos de pago correctamente');
+
+            const newPago = {
+                id: pagos.length + 1,
+                estudianteId: estudianteId,
+                concepto: concepto,
+                monto: monto,
+                fecha: new Date().toISOString().substring(0, 10),
+                estado: estado
+            };
+
+            pagos.push(newPago);
+            saveState();
+            renderAll();
+
+            bootstrap.Modal.getInstance(document.getElementById('modalPago')).hide();
+            document.getElementById('formPago').reset();
+        }
+
+        function verRecibo(pagoId) {
+            const pago = pagos.find(p => p.id === pagoId);
+            if(!pago) return;
+
+            const est = estudiantes.find(e => e.id === pago.estudianteId) || { nombre: "N/A" };
+
+            document.getElementById('reciboNum').innerText = `#${pago.id.toString().padStart(4, '0')}`;
+            document.getElementById('reciboFecha').innerText = pago.fecha;
+            document.getElementById('reciboEstudiante').innerText = est.nombre;
+            document.getElementById('reciboConcepto').innerText = pago.concepto;
+            document.getElementById('reciboMonto').innerText = `Bs. ${parseFloat(pago.monto).toFixed(2)}`;
+
+            new bootstrap.Modal(document.getElementById('modalRecibo')).show();
+        }
+
+        // --- DASHBOARD & CHARTS ---
+        function updateDashboardCards() {
+            document.getElementById('dashTotalEstudiantes').innerText = estudiantes.length;
+
+            const hoy = new Date().toISOString().substring(0, 10);
+            const asistenciasHoy = asistencias.filter(a => a.fecha === hoy);
+            
+            if(asistenciasHoy.length > 0) {
+                const presentes = asistenciasHoy.filter(a => a.estado === 'Presente').length;
+                const perc = Math.round((presentes / asistenciasHoy.length) * 100);
+                document.getElementById('dashAsistenciaHoy').innerText = `${perc}%`;
+            } else {
+                document.getElementById('dashAsistenciaHoy').innerText = '100%';
+            }
+
+            const totalRecaudado = pagos.filter(p => p.estado === 'Pagado').reduce((acc, p) => acc + p.monto, 0);
+            document.getElementById('dashRecaudado').innerText = `Bs. ${totalRecaudado}`;
+
+            const totalPendientes = pagos.filter(p => p.estado === 'Pendiente').length;
+            document.getElementById('dashPendientes').innerText = totalPendientes;
+        }
+
+        function initCharts() {
+            // Chart Asistencia
+            const ctxA = document.getElementById('chartAsistencia').getContext('2d');
+            chartAsistenciaInstance = new Chart(ctxA, {
+                type: 'bar',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'],
+                    datasets: [{
+                        label: '% Asistencia',
+                        data: [95, 98, 92, 96, 90],
+                        backgroundColor: '#0056b3',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+
+            // Chart Pagos
+            const ctxP = document.getElementById('chartPagos').getContext('2d');
+            chartPagosInstance = new Chart(ctxP, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pagado', 'Pendiente'],
+                    datasets: [{
+                        data: [
+                            pagos.filter(p => p.estado === 'Pagado').length,
+                            pagos.filter(p => p.estado === 'Pendiente').length
+                        ],
+                        backgroundColor: ['#28a745', '#ffc107']
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+    </script>
+</body>
+</html>
